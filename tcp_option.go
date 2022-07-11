@@ -5,71 +5,83 @@ import "time"
 ////////////////////////////////////////////
 // server
 
-func OptsReadHeadLength(length int) TcpServerOption {
+func TcpSLocalAddr(addr string) TcpServerOption {
 	return func(s *TcpServer) {
-		s.param.nHeadLength = length
+		s.sLocalHost = addr
 	}
 }
 
-func OptsMaxClientCount(count int) TcpServerOption {
+func TcpSHeadLen(length int) TcpServerOption {
+	return func(s *TcpServer) {
+		s.pCreateParam.nHeadLength = length
+	}
+}
+
+func TcpSMaxClientCount(count int) TcpServerOption {
 	return func(s *TcpServer) {
 		s.nMaxClientCount = count
 	}
 }
 
-func OptsMaxMsgLength(length uint32) TcpServerOption {
+func TcpSMaxMsgLen(length uint32) TcpServerOption {
 	return func(s *TcpServer) {
-		s.param.nMaxMsgLength = length
+		s.pCreateParam.nMaxMsgLength = length
 	}
 }
 
-func OptsWriteBuffCap(cap int) TcpServerOption {
+func TcpSWriteBuffCap(cap int) TcpServerOption {
 	return func(s *TcpServer) {
-		s.param.nWriteBuffCap = cap
+		s.pCreateParam.nWriteBuffCap = cap
 	}
 }
 
-func OptsLittleEndian(flag bool) TcpServerOption {
+func TcpSLittleEndian(flag bool) TcpServerOption {
 	return func(s *TcpServer) {
-		s.param.bLittleEndian = flag
+		s.pCreateParam.bLittleEndian = flag
 	}
 }
 
 ////////////////////////////////////////////
 // client
 
-func OptCConnectInterval(interval time.Duration) TcpClientOption {
+func TcpCRemoteAddr(addr string) TcpClientOption {
 	return func(c *TcpClient) {
-		c.connectInterval = interval
+		c.sRemoteAddr = addr
 	}
 }
 
-func OptCAutoReconnect(b bool) TcpClientOption {
+func TcpCConnectInterval(interval time.Duration) TcpClientOption {
 	return func(c *TcpClient) {
-		c.autoReconnect = b
+		c.nConnectInterval = interval
 	}
 }
 
-func OptCReadHeadLength(length int) TcpClientOption {
+func TcpCAutoReconnect(b bool) TcpClientOption {
 	return func(c *TcpClient) {
-		c.param.nHeadLength = length
+		c.bAutoReconnect = b
 	}
 }
 
-func OptCMaxMsgLength(length uint32) TcpClientOption {
-	return func(s *TcpClient) {
-		s.param.nMaxMsgLength = length
+func TcpCReadHeadLen(length int) TcpClientOption {
+	return func(c *TcpClient) {
+		c.pCreateParam.nHeadLength = length
 	}
 }
 
-func OptCWriteBuffCap(cap int) TcpClientOption {
-	return func(s *TcpClient) {
-		s.param.nWriteBuffCap = cap
+func TcpCMaxMsgLen(length uint32) TcpClientOption {
+	return func(c *TcpClient) {
+		c.pCreateParam.nMaxMsgLength = length
 	}
 }
 
-func OptCLittleEndian(flag bool) TcpClientOption {
-	return func(s *TcpClient) {
-		s.param.bLittleEndian = flag
+func TcpCWriteBuffCap(cap int) TcpClientOption {
+	return func(c *TcpClient) {
+		c.pCreateParam.nWriteBuffCap = cap
+	}
+}
+
+func TcpCLittleEndian(flag bool) TcpClientOption {
+	return func(c *TcpClient) {
+		c.pCreateParam.bLittleEndian = flag
 	}
 }

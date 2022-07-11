@@ -9,15 +9,16 @@ import (
 
 type (
 	TcpClient struct {
-		param *CreateConnectorParam
+		pCreateParam *CreateConnectorParam
+		pLocker      *Locker
 
-		conn            net.Conn
-		locker          *Locker
-		wg              sync.WaitGroup
-		closed          bool
-		connectInterval time.Duration
-		autoReconnect   bool
-		remoteAddr      string
+		bClosed          bool
+		bAutoReconnect   bool
+		nConnectInterval time.Duration
+		sRemoteAddr      string
+
+		conn net.Conn
+		wg   sync.WaitGroup
 
 		NewAgent func(connector *TcpConnector) Agent
 	}
@@ -25,90 +26,99 @@ type (
 )
 
 func NewTcpClient(opts ...TcpClientOption) *TcpClient {
-	client := &TcpClient{}
-	client.locker = NewLocker()
+	client := &TcpClient{pCreateParam: &CreateConnectorParam{}}
+	client.pLocker = NewLocker()
 	for _, opt := range opts {
 		opt(client)
 	}
 	return client
 }
 
-func (client *TcpClient) Start() {
-	client.init()
+func (c *TcpClient) Start() {
+	c.init()
 
-	client.wg.Add(1)
-	go client.connect()
+	c.wg.Add(1)
+	go c.connect()
 }
 
-func (client *TcpClient) init() {
-	client.locker.Lock()
-	defer client.locker.Unlock()
+func (c *TcpClient) init() {
+	c.pLocker.Lock()
+	defer c.pLocker.Unlock()
 
-	if nil == client.NewAgent {
+	if nil == c.NewAgent {
 		log.Fatal("NewAgent must not be nil")
 	}
 
-	if client.connectInterval <= 0 {
-		client.connectInterval = 3 * time.Second
+	if c.pCreateParam.nMaxMsgLength <= 0 {
+		c.pCreateParam.nMaxMsgLength = 4096
+		log.Printf("invalid MaxMsgLen, reset to %v", c.pCreateParam.nMaxMsgLength)
+	}
+
+	if c.nConnectInterval <= 0 {
+		c.nConnectInterval = 3 * time.Second
 	}
 
 }
 
-func (client *TcpClient) dial() net.Conn {
+func (c *TcpClient) dial() net.Conn {
 	for {
-		conn, err := net.Dial("tcp", client.remoteAddr)
-		if err == nil || client.closed {
+		conn, err := net.Dial("tcp", c.sRemoteAddr)
+		if err == nil || c.bClosed {
 			return conn
 		}
 
-		log.Printf("connect to %v error: %v", client.remoteAddr, err)
-		time.Sleep(client.connectInterval)
+		log.Printf("connect to %v error: %v", c.sRemoteAddr, err)
+		time.Sleep(c.nConnectInterval)
 		continue
 	}
 }
 
-func (client *TcpClient) connect() {
-	defer client.wg.Done()
+func (c *TcpClient) connect() {
+	defer c.wg.Done()
 
 reconnect:
-	conn := client.dial()
+	conn := c.dial()
 	if conn == nil {
 		return
 	}
 
-	client.locker.Lock()
-	if client.closed {
-		client.locker.Unlock()
+	c.pLocker.Lock()
+	if c.bClosed {
+		c.pLocker.Unlock()
 		conn.Close()
 		return
 	}
-	client.conn = conn
-	client.locker.Unlock()
+	c.conn = conn
+	c.pLocker.Unlock()
 
-	tcpConn := newTcpConnector(conn, client.param)
-	agent := client.NewAgent(tcpConn)
+	tcpConn := newTcpConnector(conn, c.pCreateParam)
+	agent := c.NewAgent(tcpConn)
 	agent.LogicRun()
 
 	// cleanup
 	tcpConn.Close()
-	client.locker.Lock()
-	client.conn = nil
-	client.locker.Unlock()
+	c.pLocker.Lock()
+	c.conn = nil
+	c.pLocker.Unlock()
 	agent.OnClose()
 
-	if client.autoReconnect {
-		time.Sleep(client.connectInterval)
+	if c.bAutoReconnect {
+		time.Sleep(c.nConnectInterval)
 		goto reconnect
 	}
 }
 
-func (client *TcpClient) Close() {
-	client.locker.Lock()
-	client.closed = true
+func (c *TcpClient) Close() {
+	c.pLocker.Lock()
 
-	client.conn.Close()
+	if !c.bClosed {
+		c.bClosed = true
+		if nil != c.conn {
+			c.conn.Close()
+			c.conn = nil
+		}
+	}
+	c.pLocker.Unlock()
 
-	client.locker.Unlock()
-
-	client.wg.Wait()
+	c.wg.Wait()
 }

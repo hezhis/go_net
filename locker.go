@@ -8,19 +8,19 @@ const (
 )
 
 type Locker struct {
-	locker int32
+	nLocker int32
 }
 
 func NewLocker() *Locker {
 	return &Locker{
-		locker: UnLock,
+		nLocker: UnLock,
 	}
 }
 
 func (l *Locker) Lock() {
-	atomic.CompareAndSwapInt32(&l.locker, UnLock, Lock)
+	atomic.CompareAndSwapInt32(&l.nLocker, UnLock, Lock)
 }
 
 func (l *Locker) Unlock() {
-	atomic.CompareAndSwapInt32(&l.locker, Lock, UnLock)
+	atomic.CompareAndSwapInt32(&l.nLocker, Lock, UnLock)
 }

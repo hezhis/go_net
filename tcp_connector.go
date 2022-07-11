@@ -7,20 +7,19 @@ import (
 	"log"
 	"math"
 	"net"
-	"sync"
 )
 
 type (
 	TcpConnector struct {
-		conn  net.Conn
-		mutex sync.Mutex
+		conn net.Conn
 
-		closed bool
-		locker *Locker
+		bClosed       bool
+		bLittleEndian bool
+		nHeadLength   int
+		nMaxMsgLength uint32
 
-		bLittleEndian  bool
-		nHeadLength    int
-		nMaxMsgLength  uint32
+		pLocker *Locker
+
 		bHeader        []byte
 		cWriteBuffChan chan []byte
 	}
@@ -35,7 +34,7 @@ type (
 
 func newTcpConnector(conn net.Conn, param *CreateConnectorParam) *TcpConnector {
 	c := &TcpConnector{}
-	c.locker = NewLocker()
+	c.pLocker = NewLocker()
 	c.conn = conn
 
 	if 0 == param.nHeadLength {
@@ -59,7 +58,7 @@ func newTcpConnector(conn net.Conn, param *CreateConnectorParam) *TcpConnector {
 	c.nMaxMsgLength = max
 	c.nHeadLength = param.nHeadLength
 	c.bLittleEndian = param.bLittleEndian
-	c.bHeader = make([]byte, 0, param.nHeadLength)
+	c.bHeader = make([]byte, param.nHeadLength)
 	c.cWriteBuffChan = make(chan []byte, param.nWriteBuffCap)
 
 	go c.startWriter(conn)
@@ -81,19 +80,19 @@ func (c *TcpConnector) startWriter(conn net.Conn) {
 
 	conn.Close()
 
-	c.locker.Lock()
-	c.closed = true
-	c.locker.Unlock()
+	c.pLocker.Lock()
+	c.bClosed = true
+	c.pLocker.Unlock()
 }
 
 func (c *TcpConnector) Write(b []byte) {
 	if nil == b {
 		return
 	}
-	c.locker.Lock()
-	defer c.locker.Unlock()
+	c.pLocker.Lock()
+	defer c.pLocker.Unlock()
 
-	if c.closed {
+	if c.bClosed {
 		return
 	}
 
@@ -111,19 +110,19 @@ func (c *TcpConnector) doWrite(b []byte) {
 }
 
 func (c *TcpConnector) Close() {
-	c.locker.Lock()
-	defer c.locker.Unlock()
-	if c.closed {
+	c.pLocker.Lock()
+	defer c.pLocker.Unlock()
+	if c.bClosed {
 		return
 	}
 
 	c.doWrite(nil)
-	c.closed = true
+	c.bClosed = true
 }
 
 func (c *TcpConnector) Destroy() {
-	c.locker.Lock()
-	defer c.locker.Unlock()
+	c.pLocker.Lock()
+	defer c.pLocker.Unlock()
 
 	c.doDestroy()
 }
@@ -132,10 +131,18 @@ func (c *TcpConnector) doDestroy() {
 	c.conn.(*net.TCPConn).SetLinger(0)
 	c.conn.Close()
 
-	if !c.closed {
+	if !c.bClosed {
 		close(c.cWriteBuffChan)
-		c.closed = true
+		c.bClosed = true
 	}
+}
+
+func (c *TcpConnector) LocalAddr() net.Addr {
+	return c.conn.LocalAddr()
+}
+
+func (c *TcpConnector) RemoteAddr() net.Addr {
+	return c.conn.RemoteAddr()
 }
 
 func (c *TcpConnector) ReadMsg() ([]byte, error) {

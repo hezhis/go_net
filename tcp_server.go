@@ -22,18 +22,17 @@ type (
 		connMutex sync.Mutex
 		connSet   map[net.Conn]struct{}
 
-		param *CreateConnectorParam
+		pCreateParam *CreateConnectorParam
 
 		nMaxClientCount int
-
-		localhost string
+		sLocalHost      string
 
 		NewAgent func(connector *TcpConnector) Agent
 	}
 )
 
 func NewTcpServer(opts ...TcpServerOption) *TcpServer {
-	s := &TcpServer{param: &CreateConnectorParam{}}
+	s := &TcpServer{pCreateParam: &CreateConnectorParam{}}
 	for _, opt := range opts {
 		opt(s)
 	}
@@ -49,11 +48,17 @@ func (s *TcpServer) init() {
 	if s.NewAgent == nil {
 		log.Fatal("NewAgent must not be nil")
 	}
-	if s.param.nHeadLength != 2 && s.param.nHeadLength != 4 {
+
+	if s.pCreateParam.nHeadLength != 2 && s.pCreateParam.nHeadLength != 4 {
 		log.Fatal("message head length must be 2 or 4")
 	}
 
-	ln, err := net.Listen("tcp", s.localhost)
+	if s.pCreateParam.nMaxMsgLength <= 0 {
+		s.pCreateParam.nMaxMsgLength = 4096
+		log.Printf("invalid MaxMsgLen, reset to %v", s.pCreateParam.nMaxMsgLength)
+	}
+
+	ln, err := net.Listen("tcp", s.sLocalHost)
 	if nil != err {
 		log.Fatalln(err)
 	}
@@ -63,9 +68,9 @@ func (s *TcpServer) init() {
 		log.Printf("invalid nMaxClientCount, reset to %v\n", s.nMaxClientCount)
 	}
 
-	if s.param.nWriteBuffCap <= 0 {
-		s.param.nWriteBuffCap = 100
-		log.Printf("invalid nWriteBuffCap, reset to %v\n", s.param.nWriteBuffCap)
+	if s.pCreateParam.nWriteBuffCap <= 0 {
+		s.pCreateParam.nWriteBuffCap = 100
+		log.Printf("invalid nWriteBuffCap, reset to %v\n", s.pCreateParam.nWriteBuffCap)
 	}
 
 	s.ln = ln
@@ -108,7 +113,7 @@ func (s *TcpServer) logicRun() {
 
 		s.connWait.Add(1)
 
-		connector := newTcpConnector(conn, s.param)
+		connector := newTcpConnector(conn, s.pCreateParam)
 		agent := s.NewAgent(connector)
 		go func() {
 			agent.LogicRun()
