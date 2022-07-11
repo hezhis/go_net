@@ -33,6 +33,13 @@ func NewTcpClient(opts ...TcpClientOption) *TcpClient {
 	return client
 }
 
+func (client *TcpClient) Start() {
+	client.init()
+
+	client.wg.Add(1)
+	go client.connect()
+}
+
 func (client *TcpClient) init() {
 	client.locker.Lock()
 	defer client.locker.Unlock()

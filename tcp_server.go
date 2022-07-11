@@ -42,7 +42,7 @@ func NewTcpServer(opts ...TcpServerOption) *TcpServer {
 
 func (s *TcpServer) Start() {
 	s.init()
-	go s.LogicRun()
+	go s.logicRun()
 }
 
 func (s *TcpServer) init() {
@@ -72,7 +72,7 @@ func (s *TcpServer) init() {
 	s.connSet = make(map[net.Conn]struct{})
 }
 
-func (s *TcpServer) LogicRun() {
+func (s *TcpServer) logicRun() {
 	s.lnWait.Add(1)
 	defer s.lnWait.Done()
 

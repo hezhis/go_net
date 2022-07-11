@@ -211,7 +211,7 @@ func (c *TcpConnector) WriteMsg(args ...[]byte) error {
 		l += len(args[i])
 	}
 
-	c.conn.Write(msg)
+	c.Write(msg)
 
 	return nil
 }
