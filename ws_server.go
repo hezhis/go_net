@@ -2,12 +2,13 @@ package go_net
 
 import (
 	"crypto/tls"
-	"github.com/gorilla/websocket"
-	"log"
 	"net"
 	"net/http"
 	"sync"
 	"time"
+
+	"github.com/gorilla/websocket"
+	"github.com/hezhis/go_log"
 )
 
 type (
@@ -57,7 +58,7 @@ func (handler *WSHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	conn, err := handler.upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Printf("upgrade error: %v", err)
+		logger.Error("upgrade error: %v", err)
 		return
 	}
 	conn.SetReadLimit(int64(handler.pCreateParam.nMaxMsgLength))
@@ -74,7 +75,7 @@ func (handler *WSHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if len(handler.connSet) >= handler.nMaxClientCount {
 		handler.connMutex.Unlock()
 		conn.Close()
-		log.Println("too many connections")
+		logger.Error("too many connections")
 		return
 	}
 	handler.connSet[conn] = struct{}{}
@@ -97,30 +98,30 @@ func (handler *WSHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (s *WSServer) Start() {
 	ln, err := net.Listen("tcp", s.sLocalHost)
 	if err != nil {
-		log.Fatal("%v", err)
+		logger.Fatal("%v", err)
 	}
 
 	if s.nMaxClientCount <= 0 {
 		s.nMaxClientCount = 100
-		log.Printf("invalid nMaxClientCount, reset to %v", s.nMaxClientCount)
+		logger.Warn("invalid nMaxClientCount, reset to %v", s.nMaxClientCount)
 	}
 
 	if s.pCreateParam.nWriteBuffCap <= 0 {
 		s.pCreateParam.nWriteBuffCap = 1024
-		log.Printf("invalid PendingWriteNum, reset to %v", s.pCreateParam.nWriteBuffCap)
+		logger.Warn("invalid PendingWriteNum, reset to %v", s.pCreateParam.nWriteBuffCap)
 	}
 
 	if s.pCreateParam.nMaxMsgLength <= 0 {
 		s.pCreateParam.nMaxMsgLength = 4096
-		log.Printf("invalid MaxMsgLen, reset to %v", s.pCreateParam.nMaxMsgLength)
+		logger.Warn("invalid MaxMsgLen, reset to %v", s.pCreateParam.nMaxMsgLength)
 	}
 
 	if s.nHTTPTimeout <= 0 {
 		s.nHTTPTimeout = 10 * time.Second
-		log.Printf("invalid nHTTPTimeout, reset to %v", s.nHTTPTimeout)
+		logger.Warn("invalid nHTTPTimeout, reset to %v", s.nHTTPTimeout)
 	}
 	if s.NewAgent == nil {
-		log.Fatal("NewAgent must not be nil")
+		logger.Fatal("NewAgent must not be nil")
 	}
 
 	if s.sCertFile != "" || s.sKeyFile != "" {
@@ -131,7 +132,7 @@ func (s *WSServer) Start() {
 		config.Certificates = make([]tls.Certificate, 1)
 		config.Certificates[0], err = tls.LoadX509KeyPair(s.sCertFile, s.sKeyFile)
 		if err != nil {
-			log.Fatal("%v", err)
+			logger.Fatal("%v", err)
 		}
 
 		ln = tls.NewListener(ln, config)

@@ -1,10 +1,11 @@
 package main
 
 import (
-	"github.com/hezhis/go_net"
-	"log"
 	"os"
 	"os/signal"
+
+	"github.com/hezhis/go_log"
+	"github.com/hezhis/go_net"
 )
 
 func main() {
@@ -15,7 +16,7 @@ func main() {
 
 	s.NewAgent = func(connector *go_net.WSConnector) go_net.Agent {
 		agent := &Agent{conn: connector}
-		log.Printf("new agent remote addr:%v", agent.conn.RemoteAddr())
+		logger.Info("new agent remote addr:%v", agent.conn.RemoteAddr())
 		MsgChan <- ChanMsgArgs{
 			Id:    "NewAgent",
 			Param: agent,
@@ -33,7 +34,7 @@ out:
 		select {
 		case sig := <-c:
 			break out
-			log.Printf("close by signal:%v", sig)
+			logger.Info("close by signal:%v", sig)
 		case msg := <-MsgChan:
 			switch msg.Id {
 			case "NewAgent":

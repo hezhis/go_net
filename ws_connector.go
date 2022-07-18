@@ -2,9 +2,10 @@ package go_net
 
 import (
 	"errors"
-	"github.com/gorilla/websocket"
-	"log"
 	"net"
+
+	"github.com/gorilla/websocket"
+	"github.com/hezhis/go_log"
 )
 
 type WSConnector struct {
@@ -41,7 +42,7 @@ func (c *WSConnector) startWriter(conn *websocket.Conn) {
 		}
 
 		if err := conn.WriteMessage(websocket.BinaryMessage, b); nil != err {
-			log.Println(err)
+			logger.Error("%v", err)
 			break
 		}
 	}
@@ -83,7 +84,7 @@ func (c *WSConnector) Close() {
 
 func (c *WSConnector) doWrite(b []byte) {
 	if len(c.cWriteBuffChan) == cap(c.cWriteBuffChan) {
-		log.Println("close conn: channel full")
+		logger.Error("close conn: channel full")
 		c.doDestroy()
 		return
 	}

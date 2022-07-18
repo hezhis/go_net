@@ -1,10 +1,11 @@
 package go_net
 
 import (
-	"log"
 	"net"
 	"sync"
 	"time"
+
+	"github.com/hezhis/go_log"
 )
 
 const (
@@ -46,31 +47,31 @@ func (s *TcpServer) Start() {
 
 func (s *TcpServer) init() {
 	if s.NewAgent == nil {
-		log.Fatal("NewAgent must not be nil")
+		logger.Fatal("NewAgent must not be nil")
 	}
 
 	if s.pCreateParam.nHeadLength != 2 && s.pCreateParam.nHeadLength != 4 {
-		log.Fatal("message head length must be 2 or 4")
+		logger.Fatal("message head length must be 2 or 4")
 	}
 
 	if s.pCreateParam.nMaxMsgLength <= 0 {
 		s.pCreateParam.nMaxMsgLength = 4096
-		log.Printf("invalid MaxMsgLen, reset to %v", s.pCreateParam.nMaxMsgLength)
+		logger.Warn("invalid MaxMsgLen, reset to %v", s.pCreateParam.nMaxMsgLength)
 	}
 
 	ln, err := net.Listen("tcp", s.sLocalHost)
 	if nil != err {
-		log.Fatalln(err)
+		logger.Fatal("tcp server listen error!", err)
 	}
 
 	if s.nMaxClientCount <= 0 {
 		s.nMaxClientCount = 100
-		log.Printf("invalid nMaxClientCount, reset to %v\n", s.nMaxClientCount)
+		logger.Info("invalid nMaxClientCount, reset to %v", s.nMaxClientCount)
 	}
 
 	if s.pCreateParam.nWriteBuffCap <= 0 {
 		s.pCreateParam.nWriteBuffCap = 100
-		log.Printf("invalid nWriteBuffCap, reset to %v\n", s.pCreateParam.nWriteBuffCap)
+		logger.Info("invalid nWriteBuffCap, reset to %v", s.pCreateParam.nWriteBuffCap)
 	}
 
 	s.ln = ln
@@ -103,7 +104,7 @@ func (s *TcpServer) logicRun() {
 
 		s.connMutex.Lock()
 		if len(s.connSet) >= s.nMaxClientCount {
-			log.Printf("too many connections")
+			logger.Error("too many connections")
 			s.connMutex.Unlock()
 			conn.Close()
 			continue

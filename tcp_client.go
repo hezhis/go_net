@@ -1,10 +1,11 @@
 package go_net
 
 import (
-	"log"
 	"net"
 	"sync"
 	"time"
+
+	"github.com/hezhis/go_log"
 )
 
 type (
@@ -46,12 +47,12 @@ func (c *TcpClient) init() {
 	defer c.pLocker.Unlock()
 
 	if nil == c.NewAgent {
-		log.Fatal("NewAgent must not be nil")
+		logger.Fatal("NewAgent must not be nil")
 	}
 
 	if c.pCreateParam.nMaxMsgLength <= 0 {
 		c.pCreateParam.nMaxMsgLength = 4096
-		log.Printf("invalid MaxMsgLen, reset to %v", c.pCreateParam.nMaxMsgLength)
+		logger.Debug("invalid MaxMsgLen, reset to %v", c.pCreateParam.nMaxMsgLength)
 	}
 
 	if c.nConnectInterval <= 0 {
@@ -67,7 +68,7 @@ func (c *TcpClient) dial() net.Conn {
 			return conn
 		}
 
-		log.Printf("connect to %v error: %v", c.sRemoteAddr, err)
+		logger.Error("connect to %v error: %v", c.sRemoteAddr, err)
 		time.Sleep(c.nConnectInterval)
 		continue
 	}

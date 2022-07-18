@@ -4,9 +4,10 @@ import (
 	"encoding/binary"
 	"errors"
 	"io"
-	"log"
 	"math"
 	"net"
+
+	"github.com/hezhis/go_log"
 )
 
 type (
@@ -73,7 +74,7 @@ func (c *TcpConnector) startWriter(conn net.Conn) {
 		}
 
 		if _, err := conn.Write(b); nil != err {
-			log.Println(err)
+			logger.Error("write data error! %v", err)
 			break
 		}
 	}
@@ -101,7 +102,7 @@ func (c *TcpConnector) Write(b []byte) {
 
 func (c *TcpConnector) doWrite(b []byte) {
 	if len(c.cWriteBuffChan) == cap(c.cWriteBuffChan) {
-		log.Println("close conn: channel full")
+		logger.Error("close conn: channel full")
 		c.doDestroy()
 		return
 	}

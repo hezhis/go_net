@@ -1,10 +1,11 @@
 package go_net
 
 import (
-	"github.com/gorilla/websocket"
-	"log"
 	"sync"
 	"time"
+	
+	"github.com/gorilla/websocket"
+	"github.com/hezhis/go_log"
 )
 
 type (
@@ -49,22 +50,22 @@ func (c *WSClient) init() {
 
 	if c.nConnectInterval <= 0 {
 		c.nConnectInterval = 3 * time.Second
-		log.Printf("invalid nConnectInterval, reset to %v", c.nConnectInterval)
+		logger.Info("invalid nConnectInterval, reset to %v", c.nConnectInterval)
 	}
 	if c.pParam.nWriteBuffCap <= 0 {
 		c.pParam.nWriteBuffCap = 100
-		log.Printf("invalid nWriteBuffCap, reset to %v", c.pParam.nWriteBuffCap)
+		logger.Info("invalid nWriteBuffCap, reset to %v", c.pParam.nWriteBuffCap)
 	}
 	if c.pParam.nMaxMsgLength <= 0 {
 		c.pParam.nMaxMsgLength = 4096
-		log.Printf("invalid MaxMsgLen, reset to %v", c.pParam.nMaxMsgLength)
+		logger.Info("invalid MaxMsgLen, reset to %v", c.pParam.nMaxMsgLength)
 	}
 	if c.nHandshakeTimeout <= 0 {
 		c.nHandshakeTimeout = 10 * time.Second
-		log.Printf("invalid nHandshakeTimeout, reset to %v", c.nHandshakeTimeout)
+		logger.Info("invalid nHandshakeTimeout, reset to %v", c.nHandshakeTimeout)
 	}
 	if c.NewAgent == nil {
-		log.Fatal("NewAgent must not be nil")
+		logger.Fatal("NewAgent must not be nil")
 	}
 
 	c.bClosed = false
@@ -80,7 +81,7 @@ func (c *WSClient) dial() *websocket.Conn {
 			return conn
 		}
 
-		log.Printf("connect to %v error: %v", c.sRemoteAddr, err)
+		logger.Error("connect to %v error: %v", c.sRemoteAddr, err)
 		time.Sleep(c.nConnectInterval)
 		continue
 	}
